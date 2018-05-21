@@ -2,9 +2,9 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+	"cloud.google.com/go/vision/apiv1"
+	"fmt"
 	"golang.org/x/net/context"
-        "cloud.google.com/go/vision/apiv1"
-        "fmt"
 	"io"
 	"os"
 	"testing"
@@ -35,25 +35,34 @@ func _TestCanUploadToGoogleCloudStorage(t *testing.T) {
 	}
 }
 
-func _TestCanPerformTextDetection(t *testing.T) {
-        ctx := context.Background()
+func TestCanPerformTextDetection(t *testing.T) {
+	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(context.Background())
 
-        file := "gs://postit/IMG_7237.JPG"
+	file := "gs://postit/IMG_7237.JPG"
 	image := vision.NewImageFromURI(file)
-        annotations, err := client.DetectTexts(ctx, image, nil, 10)
+	annotations, err := client.DetectDocumentText(ctx, image, nil)
 
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-        if len(annotations) == 0 {
-                t.Errorf("No text found") 
-        } else {
-                fmt.Println("Text:")
-                for _, annotation := range annotations {
-                        fmt.Printf("%v\n", annotation.Description)
-                }
-        }
+	if annotations == nil {
+		t.Errorf("No text found")
+	} else {
+		for _, page := range annotations.Pages {
+			for _, block := range page.Blocks {
+				for _, p := range block.Paragraphs {
+					fmt.Printf("\n\n")
+					for _, w := range p.Words {
+						for _, s := range w.Symbols {
+							fmt.Printf("%v", s.Text)
+						}
+                                        fmt.Printf(" ")
+                                        }
+				}
+			}
+		}
+	}
 }
